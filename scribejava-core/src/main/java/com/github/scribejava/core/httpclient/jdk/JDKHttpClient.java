@@ -13,6 +13,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -139,19 +140,22 @@ public class JDKHttpClient implements HttpClient {
     }
 
     private static Map<String, String> parseHeaders(HttpURLConnection conn) {
-        final Map<String, String> headers = new HashMap<>();
-        conn.getHeaderFields().forEach((key, value) -> {
+    	final Map<String, String> headers = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : conn.getHeaderFields().entrySet()) {
+            final String key = entry.getKey();
             if ("Content-Encoding".equalsIgnoreCase(key)) {
-                headers.put("Content-Encoding", value.get(0));
+                headers.put("Content-Encoding", entry.getValue().get(0));
             } else {
-                headers.put(key, value.get(0));
+                headers.put(key, entry.getValue().get(0));
             }
-        });
+        }
         return headers;
     }
 
     private static void addHeaders(HttpURLConnection connection, Map<String, String> headers, String userAgent) {
-        headers.forEach((key, value) -> connection.setRequestProperty(key, value));
+    	for (Map.Entry<String, String> entry : headers.entrySet()) {
+            connection.setRequestProperty(entry.getKey(), entry.getValue());
+        }
         if (userAgent != null) {
             connection.setRequestProperty(OAuthConstants.USER_AGENT_HEADER_NAME, userAgent);
         }

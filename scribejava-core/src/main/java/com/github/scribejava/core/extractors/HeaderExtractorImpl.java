@@ -6,13 +6,13 @@ import com.github.scribejava.core.model.OAuthConstants;
 import com.github.scribejava.core.model.OAuthRequest;
 import com.github.scribejava.core.utils.OAuthEncoder;
 import com.github.scribejava.core.utils.Preconditions;
-import java.util.stream.Collectors;
 
 /**
  * Default implementation of {@link HeaderExtractor}. Conforms to OAuth 1.0a
  */
 public class HeaderExtractorImpl implements HeaderExtractor {
-
+	
+    public static final int ESTIMATED_PARAM_LENGTH = 20;
     private static final String PARAM_SEPARATOR = ", ";
     private static final String PREAMBLE = "OAuth ";
 
@@ -21,18 +21,23 @@ public class HeaderExtractorImpl implements HeaderExtractor {
      */
     @Override
     public String extract(OAuthRequest request) {
-        checkPreconditions(request);
+    	checkPreconditions(request);
         final Map<String, String> parameters = request.getOauthParameters();
-
-        final String paramsString = parameters.entrySet().stream()
-                .map(entry -> String.format("%s=\"%s\"", entry.getKey(), OAuthEncoder.encode(entry.getValue())))
-                .collect(Collectors.joining(PARAM_SEPARATOR, PREAMBLE, ""));
-
-        if (request.getRealm() == null || request.getRealm().isEmpty()) {
-            return paramsString;
+        final StringBuilder header = new StringBuilder(parameters.size() * ESTIMATED_PARAM_LENGTH);
+        header.append(PREAMBLE);
+        for (Map.Entry<String, String> entry : parameters.entrySet()) {
+            if (header.length() > PREAMBLE.length()) {
+                header.append(PARAM_SEPARATOR);
+            }
+            header.append(String.format("%s=\"%s\"", entry.getKey(), OAuthEncoder.encode(entry.getValue())));
         }
 
-        return paramsString + PARAM_SEPARATOR + String.format("%s=\"%s\"", OAuthConstants.REALM, request.getRealm());
+        if (request.getRealm() != null && !request.getRealm().isEmpty()) {
+            header.append(PARAM_SEPARATOR);
+            header.append(String.format("%s=\"%s\"", OAuthConstants.REALM, request.getRealm()));
+        }
+
+        return header.toString();
     }
 
     private void checkPreconditions(OAuthRequest request) {

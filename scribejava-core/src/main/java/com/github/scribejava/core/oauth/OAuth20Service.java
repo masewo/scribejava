@@ -10,6 +10,7 @@ import com.github.scribejava.core.model.OAuthAsyncRequestCallback;
 import com.github.scribejava.core.model.OAuthConfig;
 import com.github.scribejava.core.model.OAuthConstants;
 import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.OAuthRequest.ResponseConverter;
 import com.github.scribejava.core.model.Response;
 import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.pkce.AuthorizationUrlWithPKCE;
@@ -52,7 +53,12 @@ public class OAuth20Service extends OAuthService {
     protected Future<OAuth2AccessToken> sendAccessTokenRequestAsync(OAuthRequest request,
             OAuthAsyncRequestCallback<OAuth2AccessToken> callback) {
 
-        return execute(request, callback, response -> getApi().getAccessTokenExtractor().extract(response));
+    	return execute(request, callback, new OAuthRequest.ResponseConverter<OAuth2AccessToken>() {
+            @Override
+            public OAuth2AccessToken convert(Response response) throws IOException {
+                return getApi().getAccessTokenExtractor().extract(response);
+            }
+        });
     }
 
     public final Future<OAuth2AccessToken> getAccessTokenAsync(String code) {
@@ -288,7 +294,7 @@ public class OAuth20Service extends OAuthService {
         if (pkce == null) {
             params = additionalParams;
         } else {
-            params = additionalParams == null ? new HashMap<>() : new HashMap<>(additionalParams);
+            params = additionalParams == null ? new HashMap<String, String>() : new HashMap<String, String>(additionalParams);
             params.putAll(pkce.getAuthorizationUrlParams());
         }
         return api.getAuthorizationUrl(getConfig(), params);
@@ -337,10 +343,13 @@ public class OAuth20Service extends OAuthService {
             TokenTypeHint tokenTypeHint) {
         final OAuthRequest request = createRevokeTokenRequest(tokenToRevoke, tokenTypeHint);
 
-        return execute(request, callback, response -> {
-            checkForErrorRevokeToken(response);
-            return null;
-        });
+        return execute(request, callback, new ResponseConverter<Void>() {
+			@Override
+			public Void convert(Response response) throws IOException {
+			    checkForErrorRevokeToken(response);
+			    return null;
+			}
+		});
     }
 
     private void checkForErrorRevokeToken(Response response) throws IOException {

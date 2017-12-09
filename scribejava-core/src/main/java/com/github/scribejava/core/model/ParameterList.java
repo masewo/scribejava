@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import com.github.scribejava.core.utils.OAuthEncoder;
 import com.github.scribejava.core.utils.Preconditions;
-import java.util.stream.Collectors;
 
 public class ParameterList {
 
@@ -26,11 +25,11 @@ public class ParameterList {
     }
 
     public ParameterList(Map<String, String> map) {
-        this();
+    	this();
         if (map != null && !map.isEmpty()) {
-            map.entrySet().stream()
-                    .map(entry -> new Parameter(entry.getKey(), entry.getValue()))
-                    .forEach(params::add);
+            for (Map.Entry<String, String> entry : map.entrySet()) {
+                params.add(new Parameter(entry.getKey(), entry.getValue()));
+            }
         }
     }
 
@@ -55,13 +54,15 @@ public class ParameterList {
     }
 
     public String asFormUrlEncodedString() {
-        if (params.isEmpty()) {
+    	if (params.isEmpty()) {
             return EMPTY_STRING;
         }
 
-        return params.stream()
-                .map(Parameter::asUrlEncodedPair)
-                .collect(Collectors.joining(PARAM_SEPARATOR));
+        final StringBuilder builder = new StringBuilder();
+        for (Parameter p : params) {
+            builder.append(PARAM_SEPARATOR).append(p.asUrlEncodedPair());
+        }
+        return builder.substring(1);
     }
 
     public void addAll(ParameterList other) {
